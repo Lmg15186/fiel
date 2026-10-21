@@ -1,0 +1,39 @@
+{
+  "match_id": "m-004-T4-T3",
+  "home_code": "T4",
+  "away_code": "T3",
+  "home_profile": "direct",
+  "away_profile": "possession",
+  "planted_stories": [
+    {
+      "id": "story-1",
+      "kind": "possession_drop_after_goal",
+      "description": "After scoring at 37', team B loses most of the ball; team A dominates possession for 15 minutes.",
+      "metric": "possession_pct",
+      "team": "A",
+      "before": [
+        22,
+        37
+      ],
+      "after": [
+        37,
+        52
+      ]
+    },
+    {
+      "id": "story-2",
+      "kind": "recover_higher_after_sub",
+      "description": "Team A recovers the ball about 18 metres higher after the substitution at 57'.",
+      "metric": "recovery_height",
+      "team": "A",
+      "before": [
+        47,
+        57
+      ],
+      "after": [
+        57,
+        67
+      ]
+    }
+  ]
+}

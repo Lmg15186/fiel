@@ -1,0 +1,24 @@
+{
+  "match_id": "m-002-T1-T4",
+  "home_code": "T1",
+  "away_code": "T4",
+  "home_profile": "press-high",
+  "away_profile": "direct",
+  "planted_stories": [
+    {
+      "id": "story-1",
+      "kind": "possession_drop_after_goal",
+      "description": "After scoring at 49', team A loses most of the ball; team B dominates possession for 15 minutes.",
+      "metric": "possession_pct",
+      "team": "B",
+      "before": [
+        34,
+        49
+      ],
+      "after": [
+        49,
+        64
+      ]
+    }
+  ]
+}
