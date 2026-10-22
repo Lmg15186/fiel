@@ -21,18 +21,26 @@ from openai import OpenAI
 # Load FOUNDRY_* variables from the .env file in the repo root.
 load_dotenv()
 
-ENDPOINT = os.getenv("FOUNDRY_ENDPOINT")
-API_KEY = os.getenv("FOUNDRY_API_KEY")
 DEPLOYMENT = os.getenv("FOUNDRY_DEPLOYMENT", "gpt-5-mini")
 
-if not ENDPOINT or not API_KEY:
-    raise RuntimeError(
-        "FOUNDRY_ENDPOINT and FOUNDRY_API_KEY must be set in .env "
-        "(see .env.example)."
-    )
+_client = None
 
-# The Foundry endpoint exposes the OpenAI v1 API, so the standard client works.
-client = OpenAI(base_url=ENDPOINT, api_key=API_KEY)
+
+def get_client() -> OpenAI:
+    """Build the client on first use, so importing this module never needs a key
+    (tests that fake ask_json can run without a .env)."""
+    global _client
+    if _client is None:
+        endpoint = os.getenv("FOUNDRY_ENDPOINT")
+        api_key = os.getenv("FOUNDRY_API_KEY")
+        if not endpoint or not api_key:
+            raise RuntimeError(
+                "FOUNDRY_ENDPOINT and FOUNDRY_API_KEY must be set in .env "
+                "(see .env.example)."
+            )
+        # The Foundry endpoint exposes the OpenAI v1 API, so the standard client works.
+        _client = OpenAI(base_url=endpoint, api_key=api_key)
+    return _client
 
 # Added to every system prompt so the model knows the output contract.
 JSON_RULE = (
@@ -68,7 +76,7 @@ def ask_json(system_prompt: str, user_prompt: str, max_tokens: int = 1500) -> di
 
     last_error = None
     for attempt in range(2):
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model=DEPLOYMENT,
             messages=messages,
             max_completion_tokens=max_tokens,
