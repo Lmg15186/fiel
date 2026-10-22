@@ -110,6 +110,26 @@ The Verifier rejects it because the causal language is not supported by enough e
 
 This is the central FIEL interaction: the audience sees the useful insight, while the production team can inspect its receipt and the system's reasoning trail.
 
+## Visual replay dashboard
+
+FIEL includes an offline-first Streamlit dashboard for exploring the current MVP without making a model call. It provides:
+
+- A match selector and minute-by-minute replay control
+- Live score, xG, win probability and processed-event counters
+- Win-probability and pressure timelines
+- A pitch map of recent goals, shots, recoveries, substitutions and fouls
+- A verified insight with its supporting event IDs
+- A Verification Lab showing `REJECTED → REWRITTEN → ON AIR`
+- The planted synthetic stories used as evaluation ground truth
+
+After installing the dependencies, launch it with:
+
+```bash
+streamlit run dashboard.py
+```
+
+The dashboard opens at `http://localhost:8501` by default. Azure credentials are not required for this visual replay.
+
 ## Quick start
 
 ### Requirements
@@ -177,6 +197,7 @@ For a more detailed setup guide, see [docs/SETUP.md](docs/SETUP.md). The event c
 
 ```text
 fiel/
+├── dashboard.py           # Interactive offline replay and verification demo
 ├── data/                  # Synthetic matches and planted-story ground truth
 ├── docs/                  # Setup guide and event contract
 ├── fiel/

@@ -2,3 +2,6 @@ openai>=1.50
 python-dotenv>=1.0
 pydantic>=2.6
 pytest>=8.0
+streamlit>=1.40
+pandas>=2.2
+plotly>=5.24
