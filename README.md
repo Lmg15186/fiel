@@ -246,6 +246,7 @@ fiel/
 │   ├── tactics.py         # Pressure, xG and win-probability calculations
 │   └── verifier.py        # Deterministic evidence and causality checks
 ├── tests/                 # Offline unit tests
+├── web/                   # Static source for the credential-free judge experience
 ├── run_demo.py            # Verification and rewrite demonstration
 ├── evaluate.py            # Reproducible synthetic ground-truth benchmark
 └── run_agents.py          # CLI entry point for the Agent Framework workflow
@@ -258,8 +259,14 @@ fiel/
 | **Microsoft Foundry** | Hosts `gpt-5-mini` for Explainer, Producer and Personalizer structured outputs |
 | **Azure OpenAI-compatible v1 API** | Provides structured JSON model responses through the standard Python client |
 | **Microsoft Agent Framework 1.23** | Runs typed agent hand-offs and yields the complete broadcast package |
-| **Azure Container Apps** | Hosts the public Streamlit replay and Agent Desk with scale-to-zero |
+| **GitHub Actions** | Runs the complete automated test suite on every push |
+| **GitHub Pages** | Hosts the credential-free public judge experience |
 | **GitHub** | Public source code, collaboration and project delivery |
+
+The public demo uses a cached output from a real Foundry run so it remains
+available to judges without secrets, quota or tenant access. Azure hosting is
+an optional deployment path and is not claimed as part of the current public
+experience.
 
 ## Project status
 
@@ -271,7 +278,7 @@ service and quantitative evaluation are implemented. See
 
 ## Team
 
-- **Willian Yudy Futema** — synthetic data, tactics engine, API, Match Memory and Azure deployment
+- **Willian Yudy Futema** — synthetic data, tactics engine, API, Match Memory and public demo delivery
 - **Luiza Miranda Gomes** — Foundry agents, verification, evaluation and replay experience
 
 ## Responsible use and limitations
