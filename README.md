@@ -10,6 +10,8 @@
 
 FIEL turns a live stream of **synthetic football events** into clear, timely and verifiable match insights for broadcasters and fans. Instead of asking an AI model to improvise commentary, FIEL gives it computed facts, requires it to cite the underlying event IDs, and checks every claim before it can go on air.
 
+**[Open the interactive judge experience →](https://willian-yudy-f.github.io/fiel-live/)**
+
 Built for the **Microsoft × Premier League Inside the Game Hackathon**, FIEL addresses the challenge **“The Synthetic Match Insights Engine for Premier League Studio.”**
 
 ## The problem
