@@ -34,6 +34,15 @@ def test_producer_empty_input():
     assert producer.produce([]) == []
 
 
+def test_producer_deduplicates_metrics(monkeypatch):
+    claims = [good_claim(), good_claim()]
+    monkeypatch.setattr(producer, "ask_json",
+                        lambda s, u: {"rundown": [{"index": 0, "why_now": "first"},
+                                                  {"index": 1, "why_now": "repeat"}]})
+    out = producer.produce(claims, max_items=3)
+    assert len(out) == 1 and out[0]["why_now"] == "first"
+
+
 def test_personalizer_keeps_text_when_rewrite_passes(monkeypatch):
     monkeypatch.setattr(personalizer, "ask_json",
                         lambda s, u: {"text": "Depois da substituição aos 65', o time B recuperou a bola mais alto."})

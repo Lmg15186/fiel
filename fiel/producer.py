@@ -48,6 +48,7 @@ def produce(claims: list[Claim], max_items: int = 3) -> list[dict]:
 
     rundown = []
     seen = set()
+    seen_metrics = set()
     for item in data.get("rundown", [])[:max_items]:
         try:
             idx = int(item["index"])
@@ -55,7 +56,11 @@ def produce(claims: list[Claim], max_items: int = 3) -> list[dict]:
             continue
         if idx in seen or not 0 <= idx < len(claims):
             continue   # ignore invented or duplicated indexes
+        metric = claims[idx].metric
+        if metric in seen_metrics:
+            continue   # a rundown should not repeat the same talking point
         seen.add(idx)
+        seen_metrics.add(metric)
         rundown.append({"claim": claims[idx].model_dump(),
                         "why_now": str(item.get("why_now", "")).strip()})
     return rundown

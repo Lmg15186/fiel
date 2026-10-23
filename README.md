@@ -73,8 +73,8 @@ The receipt is the metric, value, time window and supporting event IDs. The Veri
 | **Ingest** | Creates and validates event-by-event synthetic match data | Synthetic Generator + Pydantic schemas |
 | **Interpret** | Converts events into tactical signals | Tactics Engine |
 | **Explain** | Finds a relevant story and attaches supporting evidence | Foundry Explainer + Verifier |
-| **Render** | Selects and formats accepted insights for delivery | Producer *(in development)* |
-| **Personalize** | Changes language and depth while preserving the verified facts | Personalizer *(in development)* |
+| **Render** | Selects and formats accepted insights for delivery | Producer |
+| **Personalize** | Changes language and depth while preserving the verified facts | Personalizer with re-verification |
 
 ## What makes FIEL different
 
@@ -96,7 +96,7 @@ The receipt is the metric, value, time window and supporting event IDs. The Veri
 - Microsoft Foundry integration through the OpenAI-compatible v1 endpoint
 - Narrate → verify → rewrite loop with a maximum of two rewrites
 - A staged demo in which an unsupported causal claim is rejected and corrected
-- 16 offline tests across generation, verification and tactical analytics
+- 31 offline tests across generation, verification, tactical analytics, API and orchestration
 
 ## Demo: rejection before broadcast
 
@@ -183,13 +183,23 @@ FOUNDRY_DEPLOYMENT=gpt-5-mini
 
 Never commit `.env` or expose an API key in logs, screenshots or issues.
 
-### Run the end-to-end demo
+### Run the verification demo
 
 ```bash
 python run_demo.py data/m-003-T4-T3.json
 ```
 
 The demo prints tactical context, candidate claims, acceptance or rejection reasons, and the final statement allowed on air. It also writes the attempt history to `data/last_run.json`.
+
+### Run all model-backed roles
+
+```bash
+python run_agents.py data/m-003-T4-T3.json --audience fan --language pt
+```
+
+This runs Explainer, deterministic verification and rewrite, Producer, then
+Personalizer. The final output and every evidence receipt are saved to
+`data/last_agents_run.json`.
 
 For a more detailed setup guide, see [docs/SETUP.md](docs/SETUP.md). The event contract is documented in [docs/EVENT_SCHEMA.md](docs/EVENT_SCHEMA.md).
 
@@ -208,7 +218,8 @@ fiel/
 │   ├── tactics.py         # Pressure, xG and win-probability calculations
 │   └── verifier.py        # Deterministic evidence and causality checks
 ├── tests/                 # Offline unit tests
-└── run_demo.py            # End-to-end terminal demonstration
+├── run_demo.py            # Verification and rewrite demonstration
+└── run_agents.py          # Complete Explainer -> Producer -> Personalizer run
 ```
 
 ## Microsoft technology
