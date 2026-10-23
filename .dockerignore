@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+venv
+.env
+.env.*
+!.env.example
+__pycache__
+*.py[cod]
+.pytest_cache
+.coverage
+htmlcov
+tests
+data/last_run.json
+data/last_agents_run.json

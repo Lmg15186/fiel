@@ -4,8 +4,9 @@
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Microsoft Foundry](https://img.shields.io/badge/Microsoft-Foundry-5E5E5E?logo=microsoft)](https://ai.azure.com/)
+[![Agent Framework](https://img.shields.io/badge/Microsoft-Agent%20Framework-7B61FF)](https://learn.microsoft.com/agent-framework/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status: MVP in development](https://img.shields.io/badge/Status-MVP%20in%20development-orange)](#project-status)
+[![Tests: 38 passing](https://img.shields.io/badge/tests-38%20passing-20C997)](#quick-start)
 
 FIEL turns a live stream of **synthetic football events** into clear, timely and verifiable match insights for broadcasters and fans. Instead of asking an AI model to improvise commentary, FIEL gives it computed facts, requires it to cite the underlying event IDs, and checks every claim before it can go on air.
 
@@ -39,14 +40,20 @@ The result is a simple promise: **every published claim can show exactly where i
 ```mermaid
 flowchart LR
     A["Synthetic match events"] --> B["Tactics Engine"]
+    M["Batch Match Memory"] --> C
     B --> C["Explainer Agent"]
     C --> D{"Deterministic Verifier"}
     D -- "Rejected + reasons" --> E["Rewrite loop"]
     E --> D
-    D -- "Accepted + receipt" --> F["Producer"]
-    F --> G["Analyst experience"]
-    F --> H["Fan experience"]
+    D -- "Accepted + receipt" --> F["Producer Agent"]
+    F --> P["Personalizer Agent"]
+    P --> G["Analyst / fan · EN / PT"]
+    B --> W["Predictive match outlook"]
 ```
+
+The agent hand-offs are executed by **Microsoft Agent Framework 1.23**. Model-backed
+roles call a `gpt-5-mini` deployment in **Microsoft Foundry**; the Verifier, Match
+Memory, tactical metrics and evidence receipts remain deterministic Python.
 
 Each candidate insight is a structured object rather than unrestricted prose:
 
@@ -83,7 +90,7 @@ The receipt is the metric, value, time window and supporting event IDs. The Veri
 - **Visible failure recovery:** rejected claims receive specific feedback and enter a bounded rewrite loop.
 - **Measurable synthetic ground truth:** the generator deliberately plants tactical stories, allowing us to measure whether the system discovers them.
 - **Causality guardrails:** phrases such as “won the game” are blocked unless the claim is explicitly causal and has enough evidence.
-- **Safe personalization:** future audience modes may change wording, language and detail, but not the verified numbers or evidence.
+- **Safe personalization:** analyst/fan modes and English/Portuguese may change wording, but not the verified numbers or evidence.
 - **No third-party match data:** all teams, players and events are fictional and generated specifically for this project.
 
 ## Current capabilities
@@ -97,7 +104,11 @@ The receipt is the metric, value, time window and supporting event IDs. The Veri
 - Microsoft Foundry integration through the OpenAI-compatible v1 endpoint
 - Narrate → verify → rewrite loop with a maximum of two rewrites
 - A staged demo in which an unsupported causal claim is rejected and corrected
-- 34 offline tests across generation, verification, tactical memory, API and orchestration
+- Microsoft Agent Framework graph: Explainer/Verifier → Producer → Personalizer
+- Foundry-backed audience modes for analyst/fan in English and Portuguese, with re-verification and safe fallback
+- Streamlit Agent Desk plus a six-endpoint FastAPI service
+- Reproducible 30-match evaluation: 49/49 planted signals detected, 49/49 unsafe causal claims rejected, and 49/49 safe corrections accepted
+- 38 offline tests across generation, verification, tactical memory, API and orchestration
 
 ## Demo: rejection before broadcast
 
@@ -121,6 +132,7 @@ FIEL includes an offline-first Streamlit dashboard for exploring the current MVP
 - A pitch map of recent goals, shots, recoveries, substitutions and fouls
 - A verified insight with its supporting event IDs
 - A Verification Lab showing `REJECTED → REWRITTEN → ON AIR`
+- A Foundry Agent Desk showing Match Memory, Agent Framework hand-offs, on-air rundown and historical receipts
 - The planted synthetic stories used as evaluation ground truth
 
 After installing the dependencies, launch it with:
@@ -158,7 +170,7 @@ The tests do not call a model and do not require Azure credentials.
 pytest -q
 ```
 
-Expected result: `16 passed`.
+Expected result: `38 passed`.
 
 ### Generate synthetic matches
 
@@ -209,8 +221,8 @@ processing latency. It does not claim to measure language-model quality. See
 python run_agents.py data/m-003-T4-T3.json --audience fan --language pt
 ```
 
-This runs Explainer, deterministic verification and rewrite, Producer, then
-Personalizer. The final output and every evidence receipt are saved to
+This runs the Microsoft Agent Framework workflow: Explainer, deterministic
+verification and rewrite, Producer, then Personalizer. The final output and every evidence receipt are saved to
 `data/last_agents_run.json`.
 
 For a more detailed setup guide, see [docs/SETUP.md](docs/SETUP.md). The event contract is documented in [docs/EVENT_SCHEMA.md](docs/EVENT_SCHEMA.md).
@@ -224,6 +236,7 @@ fiel/
 ├── docs/                  # Setup guide and event contract
 ├── fiel/
 │   ├── claims.py          # Typed Event, Match, Claim and Verdict contracts
+│   ├── agent_workflow.py  # Microsoft Agent Framework executors and hand-offs
 │   ├── explainer.py       # Foundry Explainer and bounded rewrite loop
 │   ├── generator.py       # Synthetic match and story generator
 │   ├── llm_json.py        # JSON-only Foundry model client
@@ -232,32 +245,27 @@ fiel/
 │   └── verifier.py        # Deterministic evidence and causality checks
 ├── tests/                 # Offline unit tests
 ├── run_demo.py            # Verification and rewrite demonstration
-└── run_agents.py          # Complete Explainer -> Producer -> Personalizer run
+├── evaluate.py            # Reproducible synthetic ground-truth benchmark
+└── run_agents.py          # CLI entry point for the Agent Framework workflow
 ```
 
 ## Microsoft technology
 
 | Technology | Role in FIEL |
 | --- | --- |
-| **Microsoft Foundry** | Hosts the model used by the Explainer and future production agents |
+| **Microsoft Foundry** | Hosts `gpt-5-mini` for Explainer, Producer and Personalizer structured outputs |
 | **Azure OpenAI-compatible v1 API** | Provides structured JSON model responses through the standard Python client |
-| **Microsoft Agent Framework** | Target orchestration layer for agent hand-offs and shared state |
-| **Azure Container Apps** | Target runtime for the FastAPI service |
-| **Azure Static Web Apps** | Target hosting for the match replay experience |
+| **Microsoft Agent Framework 1.23** | Runs typed agent hand-offs and yields the complete broadcast package |
+| **Azure Container Apps** | Hosts the public Streamlit replay and Agent Desk with scale-to-zero |
 | **GitHub** | Public source code, collaboration and project delivery |
 
 ## Project status
 
-FIEL is an active hackathon MVP. The verifiable intelligence core is working end to end in the terminal. The next delivery milestones are:
-
-- FastAPI endpoints for matches, match state, claims and tactical timelines
-- Replay interface consuming live API and agent outputs
-- Producer and Personalizer components
-- Microsoft Agent Framework orchestration
-- Replay interface with clickable evidence receipts
-- Deployment to Azure and quantitative evaluation across a larger match set
-
-The deterministic Verifier is part of the core product and will remain in every version.
+FIEL is a complete hackathon MVP: the public replay, predictive analytics,
+Foundry agents, deterministic verification, historical Match Memory, FastAPI
+service and quantitative evaluation are implemented. See
+[the architecture](docs/ARCHITECTURE.md), [evaluation](docs/EVALUATION.md) and
+[submission guide](docs/SUBMISSION.md).
 
 ## Team
 
