@@ -38,7 +38,7 @@ flowchart TB
 | Explainer/Verifier executor | Foundry writes one claim; Python checks value, window, IDs and causality | At most two rewrites, otherwise hold |
 | Producer executor | Selects and ranks only accepted claims | Invalid/duplicate indices and repeated metrics are removed |
 | Personalizer executor | Analyst/fan and EN/PT wording | Re-verifies receipt; falls back to approved original on drift |
-| Streamlit/FastAPI | Judge-facing replay and machine-readable endpoints | Cached Foundry package keeps the demo deterministic |
+| Streamlit/FastAPI | Judge-facing replay and machine-readable endpoints | FastAPI is publicly deployed on Azure App Service; cached Foundry package keeps the UI deterministic |
 
 ## Trust boundary
 

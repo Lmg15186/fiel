@@ -104,6 +104,8 @@ supporting event IDs, and personalization is re-verified before delivery.
 ### Links
 
 - Public demo: https://willian-yudy-f.github.io/fiel-live/
+- Live Azure API: https://fiel-api-c3839e.azurewebsites.net/docs
+- Azure health evidence: https://fiel-api-c3839e.azurewebsites.net/health
 - Source repository: https://github.com/Lmg15186/fiel
 - Demo deployment source: https://github.com/Willian-Yudy-F/fiel-live
 
@@ -127,6 +129,7 @@ python run_agents.py data/m-003-T4-T3.json --audience fan --language pt
 
 - Repository: `https://github.com/Lmg15186/fiel`
 - Public demo: `https://willian-yudy-f.github.io/fiel-live/`
+- Live API: `https://fiel-api-c3839e.azurewebsites.net/docs`
 - Video: add an unlisted public URL, under two minutes
 - Representative: team must choose one person before final submission
 - Confirm every listed technology is present in the repository or deployment

@@ -5,6 +5,8 @@ Atualizado em 23 de outubro de 2026.
 ## Links definitivos
 
 - Demonstração pública: https://willian-yudy-f.github.io/fiel-live/
+- API pública no Azure: https://fiel-api-c3839e.azurewebsites.net/docs
+- Health check: https://fiel-api-c3839e.azurewebsites.net/health
 - Repositório oficial: https://github.com/Lmg15186/fiel
 - Código da hospedagem: https://github.com/Willian-Yudy-F/fiel-live
 - Testes do GitHub Actions: https://github.com/Lmg15186/fiel/actions
@@ -15,6 +17,7 @@ Atualizado em 23 de outubro de 2026.
 - Demonstração pública disponível sem login, segredo ou conta Azure.
 - 38 testes automatizados passando localmente e no GitHub Actions.
 - Microsoft Foundry usado com uma implantação real de `gpt-5-mini`.
+- FastAPI hospedada no Azure App Service em plano F1 Free, com sete rotas OpenAPI e seis partidas sintéticas.
 - Microsoft Agent Framework 1.23 executando o fluxo Explainer/Verifier → Producer → Personalizer.
 - Resultado real do Foundry preservado em `data/demo_agents.json` para a demonstração dos jurados.
 - Avaliação em 30 partidas concluída: 49/49 sinais detectados, 49/49 alegações causais inseguras rejeitadas e 49/49 correções seguras aceitas.
@@ -45,17 +48,18 @@ Atualizado em 23 de outubro de 2026.
 - Nenhum dado proprietário da Premier League foi usado.
 - O verificador recalcula as métricas em Python e não permite que o modelo avalie a própria resposta.
 - A demo pública está no GitHub Pages.
+- A API pública e sua documentação OpenAPI estão no Azure App Service.
 
 ## Declarações que não devem ser feitas
 
-- Não afirmar que a demonstração pública está hospedada no Azure.
+- Não afirmar que a interface da demonstração está hospedada no Azure: a interface está no GitHub Pages e a API está no Azure App Service.
 - Não afirmar que o modelo preditivo possui precisão esportiva de produção.
 - Não apresentar 49/49 como avaliação subjetiva da qualidade do LLM; são resultados contra ground truth sintético e guardrails.
 - Não usar nomes, escudos, jogadores ou vídeos reais de clubes.
 
 ## Azure
 
-O Azure continua opcional. Willian possui função de Proprietário no grupo `fiel-rg`, mas o convite B2B do Microsoft Entra ainda não foi resgatado corretamente e o Azure CLI não encontra a assinatura. Isso não bloqueia a submissão, a demonstração ou a reprodução local.
+O acesso foi confirmado no tenant `dca88b7a-af4d-4f29-abec-d5bf59ce75ef`. O grupo `fiel-rg` contém o recurso Microsoft Foundry `fiel-foundry`, o projeto `fiel`, o deployment `gpt-5-mini`, o App Service Plan F1 `fiel-api-free-plan` e o Web App `fiel-api-c3839e`. O health check público retorna `{"status":"ok","matches":6}`.
 
 ## Arquivos importantes
 
@@ -69,4 +73,4 @@ O Azure continua opcional. Willian possui função de Proprietário no grupo `fi
 
 ## Mensagem pronta para enviar
 
-> Luiza, o FIEL está pronto para a entrega. A demonstração pública é https://willian-yudy-f.github.io/fiel-live/ e o repositório oficial é https://github.com/Lmg15186/fiel. Os 38 testes estão passando e o fluxo real do Microsoft Foundry + Agent Framework está documentado. Deixei em `docs/SUBMISSION.md` os textos prontos para o formulário e em `docs/VIDEO_SCRIPT.md` o roteiro de 1:45 para o vídeo. Agora precisamos apenas escolher o representante, gravar/publicar o vídeo como não listado e preencher o formulário. O Azure ficou como melhoria opcional e não bloqueia a entrega.
+> Luiza, o FIEL está pronto para a entrega. A demonstração pública é https://willian-yudy-f.github.io/fiel-live/, a API no Azure é https://fiel-api-c3839e.azurewebsites.net/docs e o repositório oficial é https://github.com/Lmg15186/fiel. Os 38 testes estão passando, o deployment `gpt-5-mini` foi validado com uma execução real e o fluxo Microsoft Foundry + Agent Framework está documentado. Deixei em `docs/SUBMISSION.md` os textos prontos para o formulário e em `docs/VIDEO_SCRIPT.md` o roteiro de 1:45. Agora precisamos apenas escolher o representante, gravar/publicar o vídeo como não listado e preencher o formulário.

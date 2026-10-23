@@ -53,6 +53,7 @@ export default function Home() {
           <a href="#experience">Experience</a>
           <a href="#architecture">Architecture</a>
           <a href="#evidence">Evidence</a>
+          <a href="https://fiel-api-c3839e.azurewebsites.net/docs" target="_blank" rel="noreferrer">Live API</a>
         </nav>
         <a className="source-link" href="https://github.com/Lmg15186/fiel" target="_blank" rel="noreferrer">View source ↗</a>
       </header>

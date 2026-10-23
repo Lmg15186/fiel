@@ -261,19 +261,21 @@ fiel/
 | **Microsoft Agent Framework 1.23** | Runs typed agent hand-offs and yields the complete broadcast package |
 | **GitHub Actions** | Runs the complete automated test suite on every push |
 | **GitHub Pages** | Hosts the credential-free public judge experience |
+| **Azure App Service** | Hosts the public FastAPI service and OpenAPI documentation on an F1 Free plan |
 | **GitHub** | Public source code, collaboration and project delivery |
 
 The public demo uses a cached output from a real Foundry run so it remains
-available to judges without secrets, quota or tenant access. Azure hosting is
-an optional deployment path and is not claimed as part of the current public
-experience.
+available to judges without secrets, quota or tenant access. The interactive
+judge experience is hosted on GitHub Pages, while the live FastAPI service is
+hosted on Azure App Service at
+[`fiel-api-c3839e.azurewebsites.net/docs`](https://fiel-api-c3839e.azurewebsites.net/docs).
 
 ## Project status
 
 FIEL is a complete hackathon MVP: the public replay, predictive analytics,
 Foundry agents, deterministic verification, historical Match Memory, FastAPI
 service and quantitative evaluation are implemented. See
-[the architecture](docs/ARCHITECTURE.md), [evaluation](docs/EVALUATION.md) and
+[the architecture](docs/ARCHITECTURE.md), [Azure deployment](docs/AZURE_DEPLOY.md), [evaluation](docs/EVALUATION.md) and
 [submission guide](docs/SUBMISSION.md). The team hand-off and final delivery
 checklist are in [docs/HANDOFF_LUIZA.md](docs/HANDOFF_LUIZA.md).
 
