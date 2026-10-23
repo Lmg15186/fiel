@@ -56,3 +56,10 @@ def test_claims_without_cache_is_empty(tmp_path, monkeypatch):
 def test_unknown_match_is_404(tmp_path, monkeypatch):
     client = make_client(tmp_path, monkeypatch)
     assert client.get("/matches/nope/state").status_code == 404
+
+
+def test_broadcast_package(tmp_path, monkeypatch):
+    client = make_client(tmp_path, monkeypatch)
+    package = {"match_id": "m-901-T1-T2", "on_air": [{"text": "Verified."}]}
+    (tmp_path / "demo_agents.json").write_text(json.dumps(package), encoding="utf-8")
+    assert client.get("/matches/m-901-T1-T2/broadcast").json() == package

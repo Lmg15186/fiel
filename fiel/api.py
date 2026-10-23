@@ -12,6 +12,7 @@ Endpoints:
   GET /matches/{id}/timeline          win probability and pressure per window
   GET /matches/{id}/claims            approved claims with receipts
                                       (?generate=true runs the agents and caches)
+  GET /matches/{id}/broadcast         cached Producer/Personalizer output
   GET /matches/{id}/events?start=65&end=75   raw events, for the receipt view
 
 Run locally:
@@ -151,4 +152,19 @@ def claims(match_id: str, generate: bool = False):
     result = {"match_id": match_id, "claims": approved, "history": history}
     CLAIMS_DIR.mkdir(parents=True, exist_ok=True)
     cache.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    return result
+
+
+@app.get("/matches/{match_id}/broadcast")
+def broadcast(match_id: str):
+    """Return a complete cached agent run for the studio UI."""
+    load_match(match_id)  # consistent 404 for unknown matches
+    path = DATA_DIR / "demo_agents.json"
+    if not path.exists():
+        return {"match_id": match_id, "on_air": [],
+                "note": "no cached broadcast package"}
+    result = json.loads(path.read_text(encoding="utf-8"))
+    if result.get("match_id") != match_id:
+        return {"match_id": match_id, "on_air": [],
+                "note": "no cached broadcast package for this match"}
     return result

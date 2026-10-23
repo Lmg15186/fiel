@@ -4,8 +4,8 @@ Run from the repository root:
 
     streamlit run dashboard.py
 
-The dashboard is deliberately offline-first: it visualises match data,
-deterministic metrics and verifier decisions without calling Microsoft Foundry.
+The dashboard is offline-first: it visualises match data, deterministic
+metrics and verifier decisions, plus a cached real Microsoft Foundry run.
 """
 
 from __future__ import annotations
@@ -109,6 +109,11 @@ def inject_styles() -> None:
         .story-meta { color:var(--fiel-muted); font-size:.75rem; margin-top:.55rem; }
         .event-chip { display:inline-block; padding:.2rem .5rem; border-radius:999px; margin:.12rem;
             background:rgba(255,255,255,.06); border:1px solid var(--fiel-line); color:#C7CEDB; font-size:.72rem; }
+        .agent-stage { background:var(--fiel-panel); border:1px solid var(--fiel-line); border-radius:14px;
+            padding:.85rem 1rem; min-height:110px; }
+        .agent-name { color:var(--fiel-purple); font-size:.7rem; font-weight:850; letter-spacing:.11em; }
+        .agent-state { color:var(--fiel-green); font-size:.9rem; font-weight:760; margin-top:.55rem; }
+        .memory-line { color:var(--fiel-muted); font-size:.78rem; margin-top:.25rem; }
         div[data-testid="stTabs"] button { font-weight:750; }
         .stPlotlyChart { border:1px solid var(--fiel-line); border-radius:16px; overflow:hidden; }
         @media (max-width: 760px) {
@@ -142,6 +147,16 @@ def load_match(match_id: str) -> Match:
 def load_truth(match_id: str) -> dict:
     path = DATA_DIR / f"{match_id}_truth.json"
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+@st.cache_data(show_spinner=False)
+def load_agent_run(match_id: str) -> dict:
+    """Load the committed, receipt-bearing Foundry demo package."""
+    path = DATA_DIR / "demo_agents.json"
+    if not path.exists():
+        return {}
+    result = json.loads(path.read_text(encoding="utf-8"))
+    return result if result.get("match_id") == match_id else {}
 
 
 @st.cache_data(show_spinner=False)
@@ -550,6 +565,82 @@ def render_verification_lab(match: Match, truth: dict) -> None:
     checks[3].metric("4 · Language", "Causality safe")
 
 
+def render_agent_desk(match_id: str) -> None:
+    result = load_agent_run(match_id)
+    st.subheader("Foundry Agent Desk")
+    st.caption(
+        "A real cached Microsoft Foundry run: specialised roles share verified "
+        "claims, historical memory and evidence receipts. No model call is made while judging."
+    )
+    if not result:
+        st.info("No cached agent package exists for this match. Select m-003-T4-T3.")
+        return
+
+    stages = [
+        ("1 · EXPLAINER", f"{result.get('windows_analysed', 0)} windows analysed"),
+        ("2 · VERIFIER", f"{result.get('approved_claims', 0)} claims approved"),
+        ("3 · PRODUCER", f"{len(result.get('on_air', []))} items selected"),
+        ("4 · PERSONALIZER", f"{result.get('audience', '').title()} · {result.get('language', '').upper()}"),
+    ]
+    columns = st.columns(4)
+    for column, (name, state) in zip(columns, stages):
+        with column:
+            st.markdown(
+                f'<div class="agent-stage"><div class="agent-name">{escape(name)}</div>'
+                f'<div class="agent-state">{escape(state)}</div></div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("### Tactical memory · today versus usual")
+    memory_rows = []
+    for side, profile in result.get("match_memory", {}).items():
+        metrics = profile.get("metrics", {})
+        memory_rows.append({
+            "Side": f"Team {side}",
+            "Profile": profile.get("team_code", side),
+            "Past matches": profile.get("matches", 0),
+            "Usual possession": metrics.get("possession_pct"),
+            "Usual pass accuracy": metrics.get("pass_accuracy_pct"),
+            "Usual recovery height": metrics.get("recovery_height"),
+            "Usual pressure": metrics.get("pressure"),
+        })
+    if memory_rows:
+        st.dataframe(pd.DataFrame(memory_rows), hide_index=True, width="stretch")
+
+    st.markdown("### On-air rundown")
+    for item in result.get("on_air", []):
+        receipt = item.get("receipt", {})
+        baseline = ""
+        if receipt.get("baseline_value") is not None:
+            baseline = (
+                f" · historical baseline {receipt['baseline_value']} from "
+                f"{len(receipt.get('baseline_match_ids', []))} match(es)"
+            )
+        verified = "RE-VERIFIED" if item.get("personalization_verified") else "FALLBACK"
+        st.markdown(
+            f"""
+            <div class="insight-card">
+              <div class="insight-label">#{item.get('position')} · {verified} · {escape(item.get('audience', '').upper())}/{escape(item.get('language', '').upper())}</div>
+              <div class="insight-copy">“{escape(item.get('text', ''))}”</div>
+              <div class="memory-line"><b>WHY NOW</b> · {escape(item.get('why_now', ''))}</div>
+              <div class="receipt"><b>RECEIPT</b> · {escape(str(receipt.get('metric', '')))} = {receipt.get('value')} · minutes {receipt.get('window_start')}–{receipt.get('window_end')}{escape(baseline)}<br>{len(receipt.get('event_ids', []))} event IDs · {len(receipt.get('baseline_match_ids', []))} historical match IDs</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### Handoffs and recovery")
+    for window in result.get("verification_history", []):
+        label = f"Minutes {window['window'][0]}–{window['window'][1]} · {'ACCEPTED' if window.get('accepted') else 'HELD'}"
+        with st.expander(label):
+            for attempt in window.get("attempts", []):
+                status = "✓ accepted" if attempt.get("ok") else "✕ rejected → rewrite"
+                st.markdown(f"**Attempt {attempt.get('attempt')} · {status}**")
+                st.write(attempt.get("claim", {}).get("claim", "Invalid claim shape"))
+                for reason in attempt.get("reasons", []):
+                    st.caption(f"Verifier: {reason}")
+
+
 def render_ground_truth(match: Match, truth: dict) -> None:
     st.subheader("Synthetic data with measurable ground truth")
     st.caption(
@@ -615,11 +706,13 @@ def main() -> None:
     render_header(match_id)
     render_scoreboard(match, truth, minute)
 
-    match_tab, verifier_tab, truth_tab = st.tabs(
-        ["⚡ Match Room", "✓ Verification Lab", "◎ Data & Ground Truth"]
+    match_tab, agent_tab, verifier_tab, truth_tab = st.tabs(
+        ["⚡ Match Room", "◈ Agent Desk", "✓ Verification Lab", "◎ Data & Ground Truth"]
     )
     with match_tab:
         render_match_room(match, truth, match_id, minute)
+    with agent_tab:
+        render_agent_desk(match_id)
     with verifier_tab:
         render_verification_lab(match, truth)
     with truth_tab:
