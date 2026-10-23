@@ -6,7 +6,8 @@
 [![Microsoft Foundry](https://img.shields.io/badge/Microsoft-Foundry-5E5E5E?logo=microsoft)](https://ai.azure.com/)
 [![Agent Framework](https://img.shields.io/badge/Microsoft-Agent%20Framework-7B61FF)](https://learn.microsoft.com/agent-framework/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests: 38 passing](https://img.shields.io/badge/tests-38%20passing-20C997)](#quick-start)
+[![Tests: 47 passing](https://img.shields.io/badge/tests-47%20passing-20C997)](#quick-start)
+[![MCP server](https://img.shields.io/badge/MCP-server-0A7EA4)](docs/MCP.md)
 
 FIEL turns a live stream of **synthetic football events** into clear, timely and verifiable match insights for broadcasters and fans. Instead of asking an AI model to improvise commentary, FIEL gives it computed facts, requires it to cite the underlying event IDs, and checks every claim before it can go on air.
 
@@ -56,6 +57,12 @@ flowchart LR
 The agent hand-offs are executed by **Microsoft Agent Framework 1.23**. Model-backed
 roles call a `gpt-5-mini` deployment in **Microsoft Foundry**; the Verifier, Match
 Memory, tactical metrics and evidence receipts remain deterministic Python.
+
+The same deterministic engine is served three ways, from one code path: the
+**FastAPI service on Azure App Service** (feeds the public judge experience),
+the **MCP server** (lets external agents such as GitHub Copilot or Foundry
+agents call `get_match_state`, `get_events`, `get_team_memory` and
+`verify_claim` as tools) and the local **Streamlit Agent Desk**.
 
 Each candidate insight is a structured object rather than unrestricted prose:
 
@@ -108,9 +115,12 @@ The receipt is the metric, value, time window and supporting event IDs. The Veri
 - A staged demo in which an unsupported causal claim is rejected and corrected
 - Microsoft Agent Framework graph: Explainer/Verifier → Producer → Personalizer
 - Foundry-backed audience modes for analyst/fan in English and Portuguese, with re-verification and safe fallback
-- Streamlit Agent Desk plus a six-endpoint FastAPI service
+- Public judge experience on GitHub Pages that reads live numbers from the Azure-hosted API (minute-by-minute outlook, on-air package, clickable receipt listing the real events) and falls back to the stored Foundry run when the free tier is asleep
+- FastAPI service on Azure App Service with nine endpoints, including `GET /matches/{id}/memory` and `POST /matches/{id}/verify` (run the verifier on any claim from Swagger, no model call)
+- MCP server exposing seven deterministic tools to external agents ([docs/MCP.md](docs/MCP.md))
+- Streamlit Agent Desk for local replay
 - Reproducible 30-match evaluation: 49/49 planted signals detected, 49/49 unsafe causal claims rejected, and 49/49 safe corrections accepted
-- 38 offline tests across generation, verification, tactical memory, API and orchestration
+- 47 offline tests across generation, verification, tactical memory, API, MCP server and orchestration
 
 ## Demo: rejection before broadcast
 
@@ -172,7 +182,7 @@ The tests do not call a model and do not require Azure credentials.
 pytest -q
 ```
 
-Expected result: `38 passed`.
+Expected result: `47 passed`.
 
 ### Generate synthetic matches
 
@@ -227,26 +237,45 @@ This runs the Microsoft Agent Framework workflow: Explainer, deterministic
 verification and rewrite, Producer, then Personalizer. The final output and every evidence receipt are saved to
 `data/last_agents_run.json`.
 
+### Run the API and the MCP server
+
+```bash
+uvicorn fiel.api:app --reload --port 8000   # Swagger UI at http://127.0.0.1:8000/docs
+python -m fiel.mcp_server                   # MCP over stdio, for Copilot / Claude / Foundry agents
+```
+
+Try the trust boundary from Swagger: `POST /matches/m-003-T4-T3/verify` with the
+receipt from `GET /matches/m-003-T4-T3/claims`, change `value`, and watch the
+verifier return the exact mismatch. The MCP tools and client configuration are
+described in [docs/MCP.md](docs/MCP.md).
+
 For a more detailed setup guide, see [docs/SETUP.md](docs/SETUP.md). The event contract is documented in [docs/EVENT_SCHEMA.md](docs/EVENT_SCHEMA.md).
 
 ## Repository structure
 
 ```text
 fiel/
-├── dashboard.py           # Interactive offline replay and verification demo
-├── data/                  # Synthetic matches and planted-story ground truth
-├── docs/                  # Setup guide and event contract
+├── .github/workflows/     # CI: full test suite on every push
+├── dashboard.py           # Interactive offline replay and verification demo (Streamlit)
+├── data/                  # Synthetic matches, planted-story truth, cached Foundry run, evaluation
+├── deploy/                # Azure App Service deployment script (Cloud Shell)
+├── docs/                  # Architecture, setup, event schema, MCP, evaluation, submission, video
 ├── fiel/
 │   ├── claims.py          # Typed Event, Match, Claim and Verdict contracts
-│   ├── agent_workflow.py  # Microsoft Agent Framework executors and hand-offs
-│   ├── explainer.py       # Foundry Explainer and bounded rewrite loop
 │   ├── generator.py       # Synthetic match and story generator
-│   ├── llm_json.py        # JSON-only Foundry model client
-│   ├── memory.py          # Historical tactical baselines and receipts
 │   ├── tactics.py         # Pressure, xG and win-probability calculations
-│   └── verifier.py        # Deterministic evidence and causality checks
-├── tests/                 # Offline unit tests
-├── web/                   # Static source for the credential-free judge experience
+│   ├── memory.py          # Historical tactical baselines and receipts
+│   ├── verifier.py        # Deterministic evidence, causality and baseline checks
+│   ├── llm_json.py        # JSON-only Foundry model client
+│   ├── explainer.py       # Foundry Explainer and bounded rewrite loop
+│   ├── producer.py        # Ranks only approved claims for the rundown
+│   ├── personalizer.py    # Analyst/fan, EN/PT wording with re-verification
+│   ├── agent_workflow.py  # Microsoft Agent Framework executors and hand-offs
+│   ├── api.py             # FastAPI service (deployed on Azure App Service)
+│   └── mcp_server.py      # MCP server: the engine as tools for external agents
+├── tests/                 # 47 offline tests (no model calls)
+├── web/                   # React source of the public judge experience (GitHub Pages)
+├── Dockerfile.api         # Container image for the API (alternative to App Service)
 ├── run_demo.py            # Verification and rewrite demonstration
 ├── evaluate.py            # Reproducible synthetic ground-truth benchmark
 └── run_agents.py          # CLI entry point for the Agent Framework workflow
@@ -259,22 +288,25 @@ fiel/
 | **Microsoft Foundry** | Hosts `gpt-5-mini` for Explainer, Producer and Personalizer structured outputs |
 | **Azure OpenAI-compatible v1 API** | Provides structured JSON model responses through the standard Python client |
 | **Microsoft Agent Framework 1.23** | Runs typed agent hand-offs and yields the complete broadcast package |
+| **Model Context Protocol (MCP)** | `fiel/mcp_server.py` (official Python SDK) exposes match state, events, team memory, the cached broadcast and the verifier as tools for external agents. This is our own MCP server, not the Azure MCP Server product |
 | **GitHub Actions** | Runs the complete automated test suite on every push |
 | **GitHub Pages** | Hosts the credential-free public judge experience |
 | **Azure App Service** | Hosts the public FastAPI service and OpenAPI documentation on an F1 Free plan |
 | **GitHub** | Public source code, collaboration and project delivery |
 
-The public demo uses a cached output from a real Foundry run so it remains
-available to judges without secrets, quota or tenant access. The interactive
-judge experience is hosted on GitHub Pages, while the live FastAPI service is
-hosted on Azure App Service at
-[`fiel-api-c3839e.azurewebsites.net/docs`](https://fiel-api-c3839e.azurewebsites.net/docs).
+The judge experience on GitHub Pages reads every number from the FastAPI
+service on Azure App Service
+([`fiel-api-c3839e.azurewebsites.net/docs`](https://fiel-api-c3839e.azurewebsites.net/docs))
+and shows the stored output of a real Foundry run for the on-air package, so it
+stays available to judges without secrets, quota or tenant access. If the free
+tier is cold, the page falls back to the same stored package and labels it.
 
 ## Project status
 
 FIEL is a complete hackathon MVP: the public replay, predictive analytics,
 Foundry agents, deterministic verification, historical Match Memory, FastAPI
-service and quantitative evaluation are implemented. See
+service on Azure, MCP server and quantitative evaluation are implemented. The
+change history is in [docs/CHANGELOG.md](docs/CHANGELOG.md). See
 [the architecture](docs/ARCHITECTURE.md), [Azure deployment](docs/AZURE_DEPLOY.md), [evaluation](docs/EVALUATION.md) and
 [submission guide](docs/SUBMISSION.md). The team hand-off and final delivery
 checklist are in [docs/HANDOFF_LUIZA.md](docs/HANDOFF_LUIZA.md).

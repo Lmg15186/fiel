@@ -19,7 +19,7 @@ intelligence where every sentence comes with a receipt.”
 ## 0:15–0:40 — Predictive story
 
 **Screen:** In the hero replay, move from minute 59 to 69, then scroll to Match
-Room and point to the 7% → 71% swing, final xG and score.
+Room and point to the 7% → 73% swing, final xG and score.
 
 **Voice:** “Our deterministic engine tracks pressure, shot quality and a
 transparent Monte Carlo win outlook. Match Memory adds what is usual for each

@@ -14,7 +14,9 @@ flowchart TB
     V -- "approved receipt" --> R["Producer executor · Foundry"]
     R --> P["Personalizer executor · Foundry"]
     P --> V2{"Re-verification"}
-    V2 --> UI["Replay + Agent Desk"]
+    V2 --> UI["Judge experience (GitHub Pages) + Agent Desk"]
+    API["FastAPI · Azure App Service"] --> UI
+    API --> MCP["MCP server · external agents"]
   end
 
   subgraph Batch["Batch evidence lane"]
@@ -38,7 +40,9 @@ flowchart TB
 | Explainer/Verifier executor | Foundry writes one claim; Python checks value, window, IDs and causality | At most two rewrites, otherwise hold |
 | Producer executor | Selects and ranks only accepted claims | Invalid/duplicate indices and repeated metrics are removed |
 | Personalizer executor | Analyst/fan and EN/PT wording | Re-verifies receipt; falls back to approved original on drift |
-| Streamlit/FastAPI | Judge-facing replay and machine-readable endpoints | FastAPI is publicly deployed on Azure App Service; cached Foundry package keeps the UI deterministic |
+| FastAPI on Azure App Service | Machine-readable endpoints for the judge experience: state, timeline, memory, events, broadcast and `POST /verify` | Public F1 Free plan; if it is asleep the UI falls back to the stored Foundry package and says so |
+| MCP server | Exposes the same deterministic engine as tools for external agents (Copilot, Foundry agents, Claude) | Stdio transport, no model calls, same code paths as the API |
+| Streamlit Agent Desk | Local replay for development and the video | Offline-first, no credentials |
 
 ## Trust boundary
 
@@ -51,6 +55,7 @@ require the exact baseline and source match IDs.
 
 - **Agent Framework** is justified by typed, observable hand-offs between specialised roles.
 - **Foundry** is used for constrained structured generation, ranking and language adaptation.
-- **Container Apps** fits a public, low-traffic demo and can scale to zero.
+- **Azure App Service (F1 Free)** was chosen over Container Apps for the public API: zero cost for a low-traffic judge demo and a one-script deploy from Cloud Shell; the trade-off is cold starts, which the UI handles with a visible cached fallback.
+- **MCP** is the integration surface for agents outside FIEL; Agent Framework is the orchestration inside FIEL. Both reuse the same deterministic functions, so there is one source of truth for every number.
 - **No Kafka/Spark/Snowflake/dbt**: the data volume and business need do not justify them.
 - **No trained ML model claim**: the transparent Monte Carlo/Poisson outlook is honest for six source matches; training can follow with a larger dataset.

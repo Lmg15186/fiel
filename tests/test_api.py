@@ -63,3 +63,43 @@ def test_broadcast_package(tmp_path, monkeypatch):
     package = {"match_id": "m-901-T1-T2", "on_air": [{"text": "Verified."}]}
     (tmp_path / "demo_agents.json").write_text(json.dumps(package), encoding="utf-8")
     assert client.get("/matches/m-901-T1-T2/broadcast").json() == package
+
+
+def test_root_redirects_to_docs(tmp_path, monkeypatch):
+    client = make_client(tmp_path, monkeypatch)
+    r = client.get("/", follow_redirects=False)
+    assert r.status_code in (302, 307) and r.headers["location"] == "/docs"
+
+
+def test_claims_fall_back_to_cached_broadcast(tmp_path, monkeypatch):
+    client = make_client(tmp_path, monkeypatch)
+    receipt = {"claim": "x", "metric": "shots", "value": 1, "team": "A",
+               "window_start": 0, "window_end": 10, "event_ids": ["e0001"]}
+    package = {"match_id": "m-901-T1-T2", "on_air": [{"receipt": receipt}],
+               "verification_history": [{"window": [0, 10]}]}
+    (tmp_path / "demo_agents.json").write_text(json.dumps(package), encoding="utf-8")
+    body = client.get("/matches/m-901-T1-T2/claims").json()
+    assert body["claims"] == [receipt] and body["history"] == [{"window": [0, 10]}]
+
+
+def test_memory_excludes_current_match(tmp_path, monkeypatch):
+    client = make_client(tmp_path, monkeypatch)
+    body = client.get("/matches/m-901-T1-T2/memory").json()
+    # only one match in the folder, so there is no history for either side
+    assert body["teams"]["A"]["matches"] == 0 and body["teams"]["B"]["match_ids"] == []
+
+
+def test_verify_endpoint_is_deterministic(tmp_path, monkeypatch):
+    client = make_client(tmp_path, monkeypatch)
+    window = client.get("/matches/m-901-T1-T2/events?start=10&end=25").json()
+    shots = [e for e in window if e["type"] == "shot" and e["team"] == "A"]
+    claim = {"claim": "Team A had some shots between 10' and 25'.",
+             "metric": "shots", "value": len(shots), "team": "A",
+             "window_start": 10, "window_end": 25,
+             "event_ids": [e["id"] for e in shots] or [window[0]["id"]]}
+    good = client.post("/matches/m-901-T1-T2/verify", json=claim).json()
+    assert good["verdict"]["ok"] is True
+    bad = client.post("/matches/m-901-T1-T2/verify", json=dict(claim, value=99)).json()
+    assert bad["verdict"]["ok"] is False and bad["verdict"]["reasons"]
+    # a malformed claim is rejected by the schema, not by the verifier
+    assert client.post("/matches/m-901-T1-T2/verify", json={"claim": "x"}).status_code == 422

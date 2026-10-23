@@ -232,3 +232,16 @@ footer { max-width: 1480px; margin: auto; padding: 20px 42px; display: flex; jus
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
 }
+
+/* Live-first / cached-fallback indicators (added 23 Oct) */
+.source-pill { padding: 5px 8px; border: 1px solid #3a463d; color: #9aa59c; font: 700 8px/1 ui-monospace, monospace; letter-spacing: .1em; }
+.source-pill.live { border-color: #2f6b55; color: var(--mint); }
+.source-pill.connecting { color: #c9d1c9; animation: pulse 1.8s infinite; }
+.source-pill.cached { border-color: #6b4a2f; color: #f0b06a; }
+.source-note { margin-top: 10px !important; color: #5f6961 !important; font: 600 9px/1.4 ui-monospace, monospace !important; }
+.receipt-button { margin-top: 16px; width: 100%; padding: 11px 12px; background: transparent; border: 1px solid #3a463d; color: var(--mint); font: 750 9px/1 ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.receipt-button:hover:not(:disabled), .receipt-button:focus-visible { background: var(--mint); color: var(--ink); }
+.receipt-button:disabled { color: #5f6961; cursor: not-allowed; }
+.receipt-events { margin: 12px 0 0; padding: 0 0 0 28px; max-height: 220px; overflow: auto; font: 600 10px/1.7 ui-monospace, monospace; color: #aab3ab; }
+.receipt-events code { color: var(--acid); }
+.receipt-events .muted { list-style: none; margin-left: -28px; color: #6f7971; }

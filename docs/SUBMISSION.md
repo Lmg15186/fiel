@@ -21,8 +21,11 @@ in English or Portuguese. Match Memory compares today with each fictional
 team's historical baseline, while transparent xG, pressure and win probability
 show how the match is changing.
 
-The public replay is judge-safe: it uses a cached real Foundry run, exposes
-receipts and failure recovery, and needs no secret. A reproducible 30-match
+The public replay is judge-safe: it reads live numbers from the FIEL API on
+Azure App Service, shows the stored result of a real Foundry run, exposes
+receipts and failure recovery, and needs no secret. The same engine is also
+exposed as an MCP server so external agents can query match state, events,
+team memory and the verifier as tools. A reproducible 30-match
 benchmark detected all 49 planted tactical signals, rejected all 49 unsafe
 causal claims and accepted all 49 evidence-safe corrections. These figures
 measure synthetic ground truth and guardrails, not subjective LLM quality.
@@ -31,19 +34,23 @@ measure synthetic ground truth and guardrails, not subjective LLM quality.
 
 - Microsoft Foundry with a deployed `gpt-5-mini` model
 - Microsoft Agent Framework 1.23 workflow orchestration
+- Azure App Service (F1 Free, Linux) hosting the public FastAPI service
+- Model Context Protocol (MCP) server built with the official Python SDK,
+  exposing the deterministic engine as tools for external agents
 - GitHub for public source, collaboration and automated testing
 - GitHub Actions and GitHub Pages for the credential-free judge experience
 
-The public experience does not claim an Azure deployment. It presents a cached
-output from a real Foundry run so judges can inspect the complete workflow
-without credentials, quota or tenant access. Azure hosting remains an optional
-post-submission deployment path.
+The judge experience calls the Azure-hosted API for every number; if the free
+tier is asleep it falls back to the stored output of the same real Foundry run
+and says so on screen. No model call is made by judges, so there is no quota
+or tenant access to arrange.
 
 ## Two-minute judging path
 
 1. Open the [public judge experience](https://willian-yudy-f.github.io/fiel-live/).
-2. In **Match Room**, move the replay from minute 59 to 69 and show Team A's outlook changing from 7% to 71%.
-3. Open **Agent Desk** and show the Agent Framework stages, historical baseline and on-air receipt.
+2. In **Match Room**, move the replay from minute 59 to 69 and show Team A's outlook changing from 7% to 73% (the badge shows the numbers are coming from the Azure API).
+3. Open **Agent Desk**, show the Agent Framework stages, historical baseline and on-air receipt, then click **Open the events behind this receipt** to list the real event IDs.
+3b. Optional: open the [live API docs](https://fiel-api-c3839e.azurewebsites.net/docs), run `POST /matches/m-003-T4-T3/verify` with an edited value and show the verifier rejecting it.
 4. Open **Verification Lab** and show unsupported causality rejected, corrected and accepted.
 5. Open **Ground Truth** and show the 30-match evaluation figures.
 
@@ -80,10 +87,13 @@ also makes the system measurable instead of relying only on a convincing demo.
 
 A deployed `gpt-5-mini` model in Microsoft Foundry generated the featured
 evidence-bound insight. Microsoft Agent Framework 1.23 orchestrates the
-Explainer/Verifier hand-off, Producer and Personalizer. The repository includes
-the executable workflow and a cached real Foundry result so judges can reproduce
+Explainer/Verifier hand-off, Producer and Personalizer. The FastAPI service runs on Azure App
+Service and feeds the public judge experience. An MCP server exposes the same
+deterministic engine (match state, events, team memory, verifier) to external
+agents such as GitHub Copilot or Foundry agents. The repository includes the
+executable workflow and a cached real Foundry result so judges can reproduce
 the deterministic portions without secrets. GitHub Actions runs the complete
-test suite and publishes the public judge experience.
+test suite and GitHub Pages publishes the judge experience.
 
 ### How was the project evaluated?
 
@@ -91,8 +101,8 @@ The generator plants known tactical changes in synthetic matches and saves
 separate ground-truth files. Across 30 reproducible evaluation matches, FIEL
 detected 49 of 49 planted signals, rejected 49 of 49 unsafe causal claims and
 accepted 49 of 49 evidence-safe corrections. The repository currently passes
-38 automated tests covering generation, tactics, verification, memory, agents,
-API and dashboard behaviour.
+47 automated tests covering generation, tactics, verification, memory, agents,
+API, MCP server and dashboard behaviour.
 
 ### Responsible AI and data statement
 
@@ -105,6 +115,7 @@ supporting event IDs, and personalization is re-verified before delivery.
 
 - Public demo: https://willian-yudy-f.github.io/fiel-live/
 - Live Azure API: https://fiel-api-c3839e.azurewebsites.net/docs
+- MCP server: `python -m fiel.mcp_server` (see docs/MCP.md)
 - Azure health evidence: https://fiel-api-c3839e.azurewebsites.net/health
 - Source repository: https://github.com/Lmg15186/fiel
 - Demo deployment source: https://github.com/Willian-Yudy-F/fiel-live

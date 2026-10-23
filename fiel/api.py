@@ -1,19 +1,22 @@
 """
 api.py - the FIEL HTTP API (FastAPI).
 
-This is what the replay screen talks to, and what gets deployed to
-Azure Container Apps. All numbers come from the Tactics Engine; the
-sentences come from claims the verifier already approved.
+This is what the public judge experience talks to, and what is deployed to
+Azure App Service (F1 Free plan). All numbers come from the Tactics Engine;
+the sentences come from claims the verifier already approved.
 
 Endpoints:
-  GET /health                         liveness check for the deploy
-  GET /matches                        list of match ids in data/
-  GET /matches/{id}/state?minute=70   score, xG, win probability at a minute
-  GET /matches/{id}/timeline          win probability and pressure per window
-  GET /matches/{id}/claims            approved claims with receipts
-                                      (?generate=true runs the agents and caches)
-  GET /matches/{id}/broadcast         cached Producer/Personalizer output
-  GET /matches/{id}/events?start=65&end=75   raw events, for the receipt view
+  GET  /                               redirect to the OpenAPI docs
+  GET  /health                         liveness check for the deploy
+  GET  /matches                        list of match ids in data/
+  GET  /matches/{id}/state?minute=70   score, xG, win probability at a minute
+  GET  /matches/{id}/timeline          win probability and pressure per window
+  GET  /matches/{id}/memory            historical baseline for both teams
+  GET  /matches/{id}/claims            approved claims with receipts
+                                       (?generate=true runs the agents and caches)
+  GET  /matches/{id}/broadcast         cached Producer/Personalizer output
+  GET  /matches/{id}/events?start=65&end=75   raw events, for the receipt view
+  POST /matches/{id}/verify            run the deterministic verifier on any claim
 
 Run locally:
     uvicorn fiel.api:app --reload --port 8000
@@ -21,23 +24,29 @@ Run locally:
 """
 
 import json
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
-from fiel.claims import Match
+from fiel.claims import Claim, Match
+from fiel.memory import build_memory, memory_for_match
 from fiel.tactics import (pressure_windows, score_at, win_probability,
                           win_probability_timeline, xg_totals)
+from fiel.verifier import verify
 
 DATA_DIR = Path("data")
 CLAIMS_DIR = DATA_DIR / "claims"
 
-app = FastAPI(title="FIEL API", version="0.1",
+app = FastAPI(title="FIEL API", version="0.2",
               description="Football Intelligence Engine, Live - every sentence with a receipt.")
 
-# The React frontend runs on another port/origin during development.
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"],
+# The judge experience is served from GitHub Pages, so it calls this API from
+# another origin. The API is read-only apart from /verify, which only runs
+# deterministic Python on the request body, so a permissive CORS policy is fine.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"],
                    allow_headers=["*"])
 
 
@@ -48,11 +57,23 @@ def list_match_ids() -> list[str]:
                   if not p.stem.endswith("_truth"))
 
 
+@lru_cache(maxsize=32)
+def _read_match(path: str, mtime: float) -> Match:
+    # Cached by path + modification time, so a regenerated file is re-read
+    # but repeated slider requests do not re-parse 1,000 events every time.
+    return Match.model_validate_json(Path(path).read_text(encoding="utf-8"))
+
+
 def load_match(match_id: str) -> Match:
     path = DATA_DIR / f"{match_id}.json"
     if not path.exists():
         raise HTTPException(status_code=404, detail=f"match {match_id} not found")
-    return Match.model_validate_json(path.read_text(encoding="utf-8"))
+    return _read_match(str(path.resolve()), path.stat().st_mtime)
+
+
+@lru_cache(maxsize=32)
+def _memory_excluding(data_dir: str, match_id: str) -> dict:
+    return build_memory(data_dir, exclude_match_id=match_id)
 
 
 def default_windows(match: Match) -> list[tuple[int, int, str]]:
@@ -66,7 +87,21 @@ def default_windows(match: Match) -> list[tuple[int, int, str]]:
     return sorted(set(windows))
 
 
+def _cached_broadcast(match_id: str) -> dict | None:
+    """The real Foundry run saved for the judges, if it belongs to this match."""
+    path = DATA_DIR / "demo_agents.json"
+    if not path.exists():
+        return None
+    result = json.loads(path.read_text(encoding="utf-8"))
+    return result if result.get("match_id") == match_id else None
+
+
 # --- endpoints --------------------------------------------------------------
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/docs")
+
 
 @app.get("/health")
 def health():
@@ -109,6 +144,15 @@ def timeline(match_id: str):
     }
 
 
+@app.get("/matches/{match_id}/memory")
+def memory(match_id: str):
+    """Historical 'usual' values for both sides, built from the other matches."""
+    m = load_match(match_id)
+    baselines = _memory_excluding(str(DATA_DIR.resolve()), match_id)
+    return {"match_id": match_id, "excluded_match_id": match_id,
+            "teams": memory_for_match(m, baselines)}
+
+
 @app.get("/matches/{match_id}/events")
 def events(match_id: str, start: int = Query(0, ge=0), end: int = Query(90, ge=1),
            ids: str | None = None):
@@ -123,7 +167,8 @@ def events(match_id: str, start: int = Query(0, ge=0), end: int = Query(90, ge=1
 @app.get("/matches/{match_id}/claims")
 def claims(match_id: str, generate: bool = False):
     """
-    Approved claims with receipts. Reads data/claims/<id>.json if it exists.
+    Approved claims with receipts. Reads data/claims/<id>.json if it exists,
+    otherwise falls back to the receipts of the cached broadcast package.
     With ?generate=true, runs the Explainer + verifier on the default windows
     (costs model calls, takes a minute) and caches the result.
     """
@@ -132,12 +177,17 @@ def claims(match_id: str, generate: bool = False):
     if cache.exists() and not generate:
         return json.loads(cache.read_text(encoding="utf-8"))
     if not generate:
+        package = _cached_broadcast(match_id)
+        if package:
+            return {"match_id": match_id,
+                    "claims": [item["receipt"] for item in package.get("on_air", [])],
+                    "history": package.get("verification_history", []),
+                    "note": "receipts from the cached Foundry run (data/demo_agents.json)"}
         return {"match_id": match_id, "claims": [], "history": [],
                 "note": "no cached claims; call with ?generate=true"}
 
     # imported here so the API can start without a .env when only serving stats
     from fiel.explainer import explain_and_verify
-    from fiel.memory import build_memory
 
     approved, history = [], []
     memory = build_memory(DATA_DIR, exclude_match_id=match_id)
@@ -159,12 +209,22 @@ def claims(match_id: str, generate: bool = False):
 def broadcast(match_id: str):
     """Return a complete cached agent run for the studio UI."""
     load_match(match_id)  # consistent 404 for unknown matches
-    path = DATA_DIR / "demo_agents.json"
-    if not path.exists():
-        return {"match_id": match_id, "on_air": [],
-                "note": "no cached broadcast package"}
-    result = json.loads(path.read_text(encoding="utf-8"))
-    if result.get("match_id") != match_id:
+    result = _cached_broadcast(match_id)
+    if result is None:
         return {"match_id": match_id, "on_air": [],
                 "note": "no cached broadcast package for this match"}
     return result
+
+
+@app.post("/matches/{match_id}/verify")
+def verify_claim(match_id: str, claim: Claim):
+    """
+    Run the deterministic verifier on any claim, without a model call.
+    This is the trust boundary of FIEL exposed as an endpoint: paste a claim
+    with its receipt and get back ok/rejected with the exact reasons.
+    """
+    m = load_match(match_id)
+    baselines = _memory_excluding(str(DATA_DIR.resolve()), match_id)
+    verdict = verify(claim, m, memory=baselines)
+    return {"match_id": match_id, "claim": claim.model_dump(),
+            "verdict": verdict.model_dump()}
