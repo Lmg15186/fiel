@@ -192,6 +192,17 @@ python run_demo.py data/m-003-T4-T3.json
 
 The demo prints tactical context, candidate claims, acceptance or rejection reasons, and the final statement allowed on air. It also writes the attempt history to `data/last_run.json`.
 
+### Run the reproducible evaluation
+
+```bash
+python evaluate.py --matches 30 --seed 2026
+```
+
+This offline benchmark measures planted-story signals, verifier rejection of
+unsupported causal claims, safe correction acceptance and deterministic
+processing latency. It does not claim to measure language-model quality. See
+[docs/EVALUATION.md](docs/EVALUATION.md).
+
 ### Run all model-backed roles
 
 ```bash

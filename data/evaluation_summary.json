@@ -1,0 +1,62 @@
+{
+  "evaluation_type": "deterministic_offline_ground_truth",
+  "matches": 30,
+  "seed": 2026,
+  "planted_stories": 49,
+  "stories_detected": 49,
+  "story_detection_rate": 1.0,
+  "unsupported_causal_claims_rejected": 49,
+  "causal_rejection_rate": 1.0,
+  "safe_corrections_accepted": 49,
+  "correction_acceptance_rate": 1.0,
+  "total_processing_ms": 118.64,
+  "mean_processing_ms_per_match": 3.95,
+  "examples": [
+    {
+      "match_id": "eval-001-T1-T2",
+      "kind": "possession_drop_after_goal",
+      "metric": "possession_pct",
+      "team": "A",
+      "before": 63.78,
+      "after": 76.98,
+      "detected": true
+    },
+    {
+      "match_id": "eval-002-T1-T4",
+      "kind": "possession_drop_after_goal",
+      "metric": "possession_pct",
+      "team": "B",
+      "before": 42.06,
+      "after": 65.79,
+      "detected": true
+    },
+    {
+      "match_id": "eval-003-T4-T3",
+      "kind": "recover_higher_after_sub",
+      "metric": "recovery_height",
+      "team": "A",
+      "before": 38.42,
+      "after": 56.69,
+      "detected": true
+    },
+    {
+      "match_id": "eval-004-T4-T3",
+      "kind": "possession_drop_after_goal",
+      "metric": "possession_pct",
+      "team": "A",
+      "before": 30.82,
+      "after": 57.58,
+      "detected": true
+    },
+    {
+      "match_id": "eval-004-T4-T3",
+      "kind": "recover_higher_after_sub",
+      "metric": "recovery_height",
+      "team": "B",
+      "before": 42.14,
+      "after": 63.4,
+      "detected": true
+    }
+  ],
+  "scope_note": "This benchmark evaluates deterministic story signals and verifier guardrails. It does not claim to measure LLM quality."
+}
