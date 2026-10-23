@@ -29,10 +29,21 @@ CAUSAL_PATTERNS = [
     r"\blevou a\b", r"\bprovocou\b",
 ]
 
+HISTORICAL_PATTERNS = [
+    r"\busual\b", r"\btypically\b", r"\bhistorical average\b",
+    r"\bseason average\b", r"\bhabitual\b", r"\bnormalmente\b",
+    r"\bmédia histórica\b", r"\bmédia habitual\b", r"\bcostuma\b", r"\bpadrão\b",
+]
+
 
 def _has_causal_language(text: str) -> bool:
     lowered = text.lower()
     return any(re.search(p, lowered) for p in CAUSAL_PATTERNS)
+
+
+def _has_historical_language(text: str) -> bool:
+    lowered = text.lower()
+    return any(re.search(p, lowered) for p in HISTORICAL_PATTERNS)
 
 
 # --- metric recomputation ---------------------------------------------------
@@ -83,7 +94,7 @@ def _close(a: float, b: float) -> bool:
 
 # --- the verifier -----------------------------------------------------------
 
-def verify(claim: Claim, match: Match) -> Verdict:
+def verify(claim: Claim, match: Match, memory: dict | None = None) -> Verdict:
     reasons: list[str] = []
 
     # 1. cited events must exist
@@ -122,5 +133,32 @@ def verify(claim: Claim, match: Match) -> Verdict:
             reasons.append(
                 f"causal claim needs at least {CAUSAL_MIN_EVENTS} events, has {len(claim.event_ids)}"
             )
+
+    # 5. a comparison with the team's usual level needs a historical receipt
+    historical = _has_historical_language(claim.claim) or claim.baseline_value is not None
+    if historical:
+        if claim.baseline_value is None or not claim.baseline_match_ids:
+            reasons.append("historical comparison needs baseline_value and baseline_match_ids")
+        elif memory is None:
+            reasons.append("historical comparison cannot be verified without match memory")
+        else:
+            from fiel.memory import team_codes
+
+            code = team_codes(match.match_id)[claim.team]
+            profile = memory.get(code, {})
+            expected = profile.get("metrics", {}).get(claim.metric)
+            known_matches = set(profile.get("match_ids", []))
+            unknown = [mid for mid in claim.baseline_match_ids if mid not in known_matches]
+            missing = [mid for mid in known_matches if mid not in claim.baseline_match_ids]
+            if expected is None:
+                reasons.append(f"no historical baseline for {code}.{claim.metric}")
+            elif not _close(expected, claim.baseline_value):
+                reasons.append(
+                    f"baseline mismatch: claim says {claim.baseline_value}, memory gives {expected:.1f}"
+                )
+            if unknown:
+                reasons.append(f"baseline match ids not in memory: {', '.join(unknown)}")
+            if missing:
+                reasons.append(f"baseline receipt missing match ids: {', '.join(sorted(missing))}")
 
     return Verdict(ok=not reasons, reasons=reasons, recomputed_value=recomputed)

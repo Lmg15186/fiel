@@ -10,7 +10,7 @@ def test_pipeline_hands_verified_claim_through_every_role(monkeypatch):
     match = build_sample()
     calls = {"explainer": 0, "producer": 0, "personalizer": 0}
 
-    def fake_explain(current_match, start, end, context):
+    def fake_explain(current_match, start, end, context, memory=None):
         calls["explainer"] += 1
         ids = [e.id for e in current_match.events_between(start, end)
                if e.team == "A" and e.type == "pass"]
@@ -28,7 +28,7 @@ def test_pipeline_hands_verified_claim_through_every_role(monkeypatch):
         assert len(claims) == 3 and max_items == 2
         return [{"claim": claims[1].model_dump(), "why_now": "A tactical change."}]
 
-    def fake_personalize(claim, audience, language, current_match):
+    def fake_personalize(claim, audience, language, current_match, memory=None):
         calls["personalizer"] += 1
         assert current_match is match
         return {"text": "Versão para o torcedor.", "audience": audience,

@@ -35,7 +35,7 @@ Output JSON with exactly: {"text": string}
 
 
 def personalize(claim: Claim, audience: str = "analyst", language: str = "en",
-                match: Match | None = None) -> dict:
+                match: Match | None = None, memory: dict | None = None) -> dict:
     """
     Returns {"text": str, "audience": str, "language": str, "verified": bool}.
     If `match` is given, the rewritten sentence is re-verified with the
@@ -49,13 +49,16 @@ def personalize(claim: Claim, audience: str = "analyst", language: str = "en",
             f"Original sentence: {claim.claim}\n"
             f"Facts you must keep: team {claim.team}, {claim.metric} = {claim.value}, "
             f"minutes {claim.window_start}-{claim.window_end}.")
+    if claim.baseline_value is not None:
+        user += (f" Historical baseline = {claim.baseline_value} from matches "
+                 f"{claim.baseline_match_ids}.")
     data = ask_json(SYSTEM, user)
     text = str(data.get("text", "")).strip() or claim.claim
 
     verified = True
     if match is not None:
         rewritten = claim.model_copy(update={"claim": text})
-        verified = verify(rewritten, match).ok
+        verified = verify(rewritten, match, memory).ok
         if not verified:
             text = claim.claim   # fall back to the approved original
 

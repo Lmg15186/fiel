@@ -81,6 +81,9 @@ class Claim(BaseModel):
     # The verifier only allows this when evidence is strong enough.
     causal: bool = False
     confidence: float = Field(0.5, ge=0, le=1)
+    # Optional historical receipt when the sentence compares today with usual.
+    baseline_value: Optional[float] = None
+    baseline_match_ids: list[str] = Field(default_factory=list)
 
 
 class Verdict(BaseModel):

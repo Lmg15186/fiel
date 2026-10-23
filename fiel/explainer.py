@@ -45,10 +45,15 @@ Rules:
   "causal": true, and only do that when the evidence is overwhelming.
 - Teams are called "team A" and "team B". No real club names.
 
+If you compare the current value with the team's usual/historical level, use
+the supplied tactical memory and also fill baseline_value and
+baseline_match_ids. Otherwise return null and [] for those two fields.
+
 Output JSON with exactly these keys:
 {"claim": string, "metric": string, "value": number, "team": "A" or "B",
  "window_start": int, "window_end": int, "event_ids": [string],
- "causal": bool, "confidence": number between 0 and 1}
+ "causal": bool, "confidence": number between 0 and 1,
+ "baseline_value": number or null, "baseline_match_ids": [string]}
 """
 
 
@@ -80,29 +85,43 @@ def _to_claim(data: dict, start: int, end: int) -> Claim:
     data.setdefault("window_end", end)
     data.setdefault("causal", False)
     data.setdefault("confidence", 0.5)
+    data.setdefault("baseline_value", None)
+    data.setdefault("baseline_match_ids", [])
     return Claim(**data)
 
 
-def explain_window(match: Match, start: int, end: int, context: str = "") -> Claim:
+def explain_window(match: Match, start: int, end: int, context: str = "",
+                   memory: dict | None = None) -> Claim:
     facts = _facts_for(match, start, end)
+    historical = ""
+    if memory:
+        from fiel.memory import memory_context
+        historical = f"\n{memory_context(match, memory)}\n"
     user = (
         f"Match {match.match_id}, window minute {start} to {end}.\n"
         f"{context}\n"
         f"Facts per team (metric -> value and supporting event ids):\n"
         f"{json.dumps(facts, indent=1)}\n"
+        f"{historical}"
         "Write the most interesting true claim for this window."
     )
     data = ask_json(SYSTEM, user)
     return _to_claim(data, start, end)
 
 
-def rewrite(claim: Claim, reasons: list[str], match: Match) -> Claim:
+def rewrite(claim: Claim, reasons: list[str], match: Match,
+            memory: dict | None = None) -> Claim:
     facts = _facts_for(match, claim.window_start, claim.window_end)
+    historical = ""
+    if memory:
+        from fiel.memory import memory_context
+        historical = f"\n{memory_context(match, memory)}\n"
     user = (
         "Your previous claim was REJECTED by the verifier.\n"
         f"Claim: {claim.model_dump_json()}\n"
         f"Reasons: {reasons}\n"
         f"Facts you may use:\n{json.dumps(facts, indent=1)}\n"
+        f"{historical}"
         "Rewrite it so every reason is fixed. Keep the same window."
     )
     data = ask_json(SYSTEM, user)
@@ -116,17 +135,17 @@ def _bad_shape(attempt: int, err: ValidationError) -> dict:
 
 
 def explain_and_verify(match: Match, start: int, end: int, context: str = "",
-                       max_rewrites: int = 2):
+                       max_rewrites: int = 2, memory: dict | None = None):
     """Returns (final_claim_or_None, history) where history lists each attempt."""
     history = []
     try:
-        claim = explain_window(match, start, end, context)
+        claim = explain_window(match, start, end, context, memory)
     except ValidationError as err:
         history.append(_bad_shape(1, err))
         return None, history
 
     for attempt in range(max_rewrites + 1):
-        verdict = verify(claim, match)
+        verdict = verify(claim, match, memory)
         history.append({"attempt": attempt + 1, "claim": claim.model_dump(),
                         "ok": verdict.ok, "reasons": verdict.reasons})
         if verdict.ok:
@@ -134,7 +153,7 @@ def explain_and_verify(match: Match, start: int, end: int, context: str = "",
         if attempt == max_rewrites:
             break
         try:
-            claim = rewrite(claim, verdict.reasons, match)
+            claim = rewrite(claim, verdict.reasons, match, memory)
         except ValidationError as err:
             history.append(_bad_shape(attempt + 2, err))
             break

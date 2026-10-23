@@ -21,6 +21,7 @@ from pathlib import Path
 
 from fiel.claims import Claim, Match
 from fiel.explainer import explain_and_verify
+from fiel.memory import build_memory, memory_for_match
 from fiel.personalizer import personalize
 from fiel.producer import produce
 
@@ -59,6 +60,7 @@ def run_pipeline(
     language: str = "pt",
     max_items: int = 3,
     reporter: Callable[[str], None] | None = None,
+    memory: dict | None = None,
 ) -> dict:
     """Run every role and return a JSON-serialisable integration result."""
     approved: list[Claim] = []
@@ -67,7 +69,7 @@ def run_pipeline(
     for start, end, context in demo_windows(match):
         if reporter:
             reporter(f"Explainer: analysing minutes {start}-{end}...")
-        claim, history = explain_and_verify(match, start, end, context)
+        claim, history = explain_and_verify(match, start, end, context, memory=memory)
         verification_history.append({
             "window": [start, end],
             "context": context,
@@ -86,7 +88,7 @@ def run_pipeline(
         claim = Claim.model_validate(item["claim"])
         if reporter:
             reporter(f"Personalizer: preparing item {position} for {audience}/{language}...")
-        version = personalize(claim, audience, language, match)
+        version = personalize(claim, audience, language, match, memory)
         on_air.append({
             "position": position,
             "why_now": item["why_now"],
@@ -101,6 +103,7 @@ def run_pipeline(
         "match_id": match.match_id,
         "audience": audience,
         "language": language,
+        "match_memory": memory_for_match(match, memory or {}),
         "windows_analysed": len(verification_history),
         "approved_claims": len(approved),
         "verification_history": verification_history,
@@ -123,8 +126,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     match = load_match(args.match)
+    memory = build_memory(Path(args.match).parent, exclude_match_id=match.match_id)
     print(f"FIEL agents — {match.match_id} ({len(match.events)} events)")
-    result = run_pipeline(match, args.audience, args.language, args.max_items, print)
+    result = run_pipeline(match, args.audience, args.language, args.max_items, print, memory)
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)

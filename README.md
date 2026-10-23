@@ -93,10 +93,11 @@ The receipt is the metric, value, time window and supporting event IDs. The Veri
 - Ten planted tactical stories with separate ground-truth files
 - Verified metrics: possession, recovery height, shots, shots on target, goals and pass accuracy
 - Tactical analytics: five-minute pressure index, transparent xG and Monte Carlo/Poisson win probability
+- Match Memory baselines for possession, pass accuracy, recovery height and pressure, with historical receipts
 - Microsoft Foundry integration through the OpenAI-compatible v1 endpoint
 - Narrate → verify → rewrite loop with a maximum of two rewrites
 - A staged demo in which an unsupported causal claim is rejected and corrected
-- 31 offline tests across generation, verification, tactical analytics, API and orchestration
+- 34 offline tests across generation, verification, tactical memory, API and orchestration
 
 ## Demo: rejection before broadcast
 
@@ -215,6 +216,7 @@ fiel/
 │   ├── explainer.py       # Foundry Explainer and bounded rewrite loop
 │   ├── generator.py       # Synthetic match and story generator
 │   ├── llm_json.py        # JSON-only Foundry model client
+│   ├── memory.py          # Historical tactical baselines and receipts
 │   ├── tactics.py         # Pressure, xG and win-probability calculations
 │   └── verifier.py        # Deterministic evidence and causality checks
 ├── tests/                 # Offline unit tests
@@ -238,7 +240,7 @@ fiel/
 FIEL is an active hackathon MVP. The verifiable intelligence core is working end to end in the terminal. The next delivery milestones are:
 
 - FastAPI endpoints for matches, match state, claims and tactical timelines
-- Match Memory for comparing today's performance with a team's synthetic history
+- Replay interface consuming live API and agent outputs
 - Producer and Personalizer components
 - Microsoft Agent Framework orchestration
 - Replay interface with clickable evidence receipts

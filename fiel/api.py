@@ -136,10 +136,12 @@ def claims(match_id: str, generate: bool = False):
 
     # imported here so the API can start without a .env when only serving stats
     from fiel.explainer import explain_and_verify
+    from fiel.memory import build_memory
 
     approved, history = [], []
+    memory = build_memory(DATA_DIR, exclude_match_id=match_id)
     for start, end, context in default_windows(m):
-        final, hist = explain_and_verify(m, start, end, context)
+        final, hist = explain_and_verify(m, start, end, context, memory=memory)
         history.extend(hist)
         if final:
             item = final.model_dump()
