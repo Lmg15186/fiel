@@ -16,14 +16,11 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Callable
 from pathlib import Path
 
-from fiel.claims import Claim, Match
-from fiel.explainer import explain_and_verify
-from fiel.memory import build_memory, memory_for_match
-from fiel.personalizer import personalize
-from fiel.producer import produce
+from fiel.agent_workflow import demo_windows, run_pipeline
+from fiel.claims import Match
+from fiel.memory import build_memory
 
 DEFAULT_MATCH = Path("data/m-003-T4-T3.json")
 DEFAULT_OUTPUT = Path("data/last_agents_run.json")
@@ -31,84 +28,6 @@ DEFAULT_OUTPUT = Path("data/last_agents_run.json")
 
 def load_match(path: str | Path) -> Match:
     return Match.model_validate_json(Path(path).read_text(encoding="utf-8"))
-
-
-def demo_windows(match: Match) -> list[tuple[int, int, str]]:
-    """Return an opening window and the windows around a substitution."""
-    windows = [(0, 15, "Opening phase.")]
-    substitutions = [e for e in match.events if e.type == "substitution"]
-    preferred = next((e for e in substitutions if e.team == "B"), None)
-    substitution = preferred or (substitutions[0] if substitutions else None)
-
-    if substitution is not None:
-        minute = substitution.minute
-        windows.extend([
-            (max(0, minute - 10), minute,
-             f"Ten minutes before team {substitution.team}'s substitution."),
-            (minute, min(minute + 10, 90),
-             f"Team {substitution.team} made a substitution at {minute}'. "
-             "Compare with the previous window."),
-        ])
-
-    # Keep order while removing a possible zero-length or duplicate window.
-    return list(dict.fromkeys(w for w in windows if w[1] > w[0]))
-
-
-def run_pipeline(
-    match: Match,
-    audience: str = "fan",
-    language: str = "pt",
-    max_items: int = 3,
-    reporter: Callable[[str], None] | None = None,
-    memory: dict | None = None,
-) -> dict:
-    """Run every role and return a JSON-serialisable integration result."""
-    approved: list[Claim] = []
-    verification_history: list[dict] = []
-
-    for start, end, context in demo_windows(match):
-        if reporter:
-            reporter(f"Explainer: analysing minutes {start}-{end}...")
-        claim, history = explain_and_verify(match, start, end, context, memory=memory)
-        verification_history.append({
-            "window": [start, end],
-            "context": context,
-            "attempts": history,
-            "accepted": claim is not None,
-        })
-        if claim is not None:
-            approved.append(claim)
-
-    if reporter:
-        reporter(f"Producer: ranking {len(approved)} approved claim(s)...")
-    rundown = produce(approved, max_items=max_items)
-
-    on_air = []
-    for position, item in enumerate(rundown, start=1):
-        claim = Claim.model_validate(item["claim"])
-        if reporter:
-            reporter(f"Personalizer: preparing item {position} for {audience}/{language}...")
-        version = personalize(claim, audience, language, match, memory)
-        on_air.append({
-            "position": position,
-            "why_now": item["why_now"],
-            "text": version["text"],
-            "audience": version["audience"],
-            "language": version["language"],
-            "personalization_verified": version["verified"],
-            "receipt": claim.model_dump(),
-        })
-
-    return {
-        "match_id": match.match_id,
-        "audience": audience,
-        "language": language,
-        "match_memory": memory_for_match(match, memory or {}),
-        "windows_analysed": len(verification_history),
-        "approved_claims": len(approved),
-        "verification_history": verification_history,
-        "on_air": on_air,
-    }
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -569,12 +569,19 @@ def render_agent_desk(match_id: str) -> None:
     result = load_agent_run(match_id)
     st.subheader("Foundry Agent Desk")
     st.caption(
-        "A real cached Microsoft Foundry run: specialised roles share verified "
-        "claims, historical memory and evidence receipts. No model call is made while judging."
+        "A real cached Microsoft Foundry run orchestrated by Microsoft Agent Framework: "
+        "specialised roles share verified claims, historical memory and evidence receipts. "
+        "No model call is made while judging."
     )
     if not result:
         st.info("No cached agent package exists for this match. Select m-003-T4-T3.")
         return
+
+    orchestration = result.get("orchestration", {})
+    st.success(
+        f"{orchestration.get('framework', 'Agent workflow')} · "
+        f"{orchestration.get('workflow', 'Explainer → Producer → Personalizer')}"
+    )
 
     stages = [
         ("1 · EXPLAINER", f"{result.get('windows_analysed', 0)} windows analysed"),

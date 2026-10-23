@@ -2,6 +2,8 @@
 
 import run_agents
 
+from fiel import agent_workflow
+from fiel.claims import Claim
 from fiel.sample_match import build_sample
 from fiel.verifier import recompute
 
@@ -15,7 +17,7 @@ def test_pipeline_hands_verified_claim_through_every_role(monkeypatch):
         ids = [e.id for e in current_match.events_between(start, end)
                if e.team == "A" and e.type == "pass"]
         value = recompute("pass_accuracy_pct", "A", current_match, start, end)
-        claim = run_agents.Claim(
+        claim = Claim(
             claim=f"Team A completed {value:.1f}% of its passes.",
             metric="pass_accuracy_pct", value=round(value, 1), team="A",
             window_start=start, window_end=end, event_ids=ids,
@@ -34,9 +36,9 @@ def test_pipeline_hands_verified_claim_through_every_role(monkeypatch):
         return {"text": "Versão para o torcedor.", "audience": audience,
                 "language": language, "verified": True}
 
-    monkeypatch.setattr(run_agents, "explain_and_verify", fake_explain)
-    monkeypatch.setattr(run_agents, "produce", fake_produce)
-    monkeypatch.setattr(run_agents, "personalize", fake_personalize)
+    monkeypatch.setattr(agent_workflow, "explain_and_verify", fake_explain)
+    monkeypatch.setattr(agent_workflow, "produce", fake_produce)
+    monkeypatch.setattr(agent_workflow, "personalize", fake_personalize)
 
     result = run_agents.run_pipeline(match, "fan", "pt", max_items=2)
 
