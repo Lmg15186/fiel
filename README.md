@@ -274,7 +274,8 @@ FIEL is a complete hackathon MVP: the public replay, predictive analytics,
 Foundry agents, deterministic verification, historical Match Memory, FastAPI
 service and quantitative evaluation are implemented. See
 [the architecture](docs/ARCHITECTURE.md), [evaluation](docs/EVALUATION.md) and
-[submission guide](docs/SUBMISSION.md).
+[submission guide](docs/SUBMISSION.md). The team hand-off and final delivery
+checklist are in [docs/HANDOFF_LUIZA.md](docs/HANDOFF_LUIZA.md).
 
 ## Team
 
