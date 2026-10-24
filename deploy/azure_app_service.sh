@@ -3,7 +3,10 @@ set -euo pipefail
 
 # FIEL API deployment for Azure Cloud Shell.
 # The defaults target the hackathon resources already validated on 2026-10-23.
-SUBSCRIPTION_ID="${FIEL_SUBSCRIPTION_ID:-c3839efa-b8cb-402a-b405-536ee5bc5d64}"
+# The subscription id is not stored in the repository: pass it in
+# FIEL_SUBSCRIPTION_ID, or leave it unset to deploy to the subscription that
+# is currently selected in `az account show`.
+SUBSCRIPTION_ID="${FIEL_SUBSCRIPTION_ID:-}"
 RESOURCE_GROUP="${FIEL_RESOURCE_GROUP:-fiel-rg}"
 LOCATION="${FIEL_LOCATION:-australiaeast}"
 FOUNDRY_ACCOUNT="${FIEL_FOUNDRY_ACCOUNT:-fiel-foundry}"
@@ -16,7 +19,10 @@ command -v az >/dev/null || { echo "Azure CLI (az) is required." >&2; exit 1; }
 command -v git >/dev/null || { echo "git is required." >&2; exit 1; }
 command -v curl >/dev/null || { echo "curl is required." >&2; exit 1; }
 
-az account set --subscription "$SUBSCRIPTION_ID"
+if [[ -n "$SUBSCRIPTION_ID" ]]; then
+  az account set --subscription "$SUBSCRIPTION_ID"
+fi
+echo "Using subscription: $(az account show --query name --output tsv)"
 az group show --name "$RESOURCE_GROUP" --output none
 
 echo "Deploying FIEL API to Azure App Service"

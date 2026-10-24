@@ -3,6 +3,16 @@
 Dates are Sydney time. Only changes that matter to a reader of the repository
 are listed; the full history is in `git log`.
 
+## 2026-10-24 — repository hygiene before submission
+
+- The team hand-off note is now in English (`docs/TEAM_HANDOFF.md`), replacing
+  the Portuguese `HANDOFF_LUIZA.md`, so every file in the public repository is
+  in English.
+- `deploy/azure_app_service.sh` no longer embeds a subscription id; it uses the
+  subscription selected in Cloud Shell or `FIEL_SUBSCRIPTION_ID`.
+- API redeployed to Azure App Service from the current `main`; the public demo
+  now shows the `LIVE API` badge against it.
+
 ## 2026-10-23 (evening) — live judge experience, MCP server, honest docs
 
 - **Judge experience reads the Azure API.** The public page used to be fully

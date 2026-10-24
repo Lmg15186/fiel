@@ -21,9 +21,12 @@ cd fiel
 bash deploy/azure_app_service.sh
 ```
 
-The script is safe to run again. It:
+The script is safe to run again. It deploys to the subscription currently
+selected in Cloud Shell (`az account show`); to target another one, set
+`FIEL_SUBSCRIPTION_ID=<id>` before running it. No subscription or tenant id is
+stored in the repository. It:
 
-1. selects the existing Azure for Students subscription;
+1. confirms the subscription in use and that `fiel-rg` exists;
 2. reuses `fiel-rg` and `fiel-foundry`;
 3. creates or reuses an F1 Linux App Service plan;
 4. creates or reuses the FIEL API web app;

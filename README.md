@@ -309,7 +309,7 @@ service on Azure, MCP server and quantitative evaluation are implemented. The
 change history is in [docs/CHANGELOG.md](docs/CHANGELOG.md). See
 [the architecture](docs/ARCHITECTURE.md), [Azure deployment](docs/AZURE_DEPLOY.md), [evaluation](docs/EVALUATION.md) and
 [submission guide](docs/SUBMISSION.md). The team hand-off and final delivery
-checklist are in [docs/HANDOFF_LUIZA.md](docs/HANDOFF_LUIZA.md).
+checklist are in [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md).
 
 ## Team
 
