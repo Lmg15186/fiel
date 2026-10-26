@@ -1,0 +1,20 @@
+name: keep the Azure API warm
+
+# The API runs on an App Service F1 (free) plan, which goes to sleep after a
+# few idle minutes and then takes about a minute to answer the first request.
+# Pinging /health every 10 minutes keeps it awake while the judges look at the
+# project. Disable this workflow after the judging period (10 Nov 2026).
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: |
+          curl --silent --show-error --max-time 120 \
+            https://fiel-api-c3839e.azurewebsites.net/health
