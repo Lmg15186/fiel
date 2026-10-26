@@ -1,7 +1,14 @@
 # FIEL video script — target 1:45
 
-Open `https://willian-yudy-f.github.io/fiel-live/` before recording and close
-unrelated tabs and notifications.
+Open `https://willian-yudy-f.github.io/fiel-live/` in a private window a few
+minutes before recording and close unrelated tabs and notifications.
+
+**Record only when the pill at the top says `LIVE API · AZURE APP SERVICE`.**
+The free-tier API can take about a minute to wake up; while it does, the page
+shows `WAKING THE AZURE API…` and keeps retrying by itself. If you ever see
+`CACHED PACKAGE`, wait for the pill to turn green before you start.
+
+Willian narrates. Luiza speaks the Verification Lab section (1:12–1:32).
 
 Record in English, 1080p, with the browser zoomed so receipts are readable.
 Use only the FIEL interface and voice-over; no third-party football footage,
@@ -27,8 +34,9 @@ fictional team, so FIEL can explain not only what happened, but what changed.”
 
 ## 0:40–1:12 — Agents and evidence
 
-**Screen:** Select Agent Desk; point to the framework banner, four stages,
-historical baseline and receipt.
+**Screen:** Select Agent Desk; point to the framework banner, four stages and
+historical baseline. Click **the receipt** so the real event IDs expand on
+screen.
 
 **Voice:** “Microsoft Agent Framework orchestrates three specialised roles.
 The Foundry Explainer proposes a claim with metric, window and event IDs. Python
@@ -41,7 +49,7 @@ receipt is verified again. If wording drifts, FIEL falls back safely.”
 **Screen:** Select Verification Lab and show the rejected causal sentence beside
 the accepted correction.
 
-**Voice:** “Here, an unsupported claim that a substitution won the game is
+**Voice (Luiza):** “Here, an unsupported claim that a substitution won the game is
 blocked. The system returns a precise reason, rewrites it as measurable
 evidence, and only then marks it on air.”
 
@@ -51,5 +59,6 @@ evidence, and only then marks it on air.”
 
 **Voice:** “Across thirty reproducible matches, FIEL detected all forty-nine
 planted signals, rejected all forty-nine unsafe causal claims, and accepted all
-forty-nine safe corrections. FIEL: real-time stories, historical context, and
-evidence a broadcaster can inspect.”
+forty-nine safe corrections. The same engine is also an MCP server, so other
+agents can call the verifier as a tool. FIEL: real-time stories, historical
+context, and evidence a broadcaster can inspect.”
